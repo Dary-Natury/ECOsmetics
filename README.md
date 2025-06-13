@@ -1,6 +1,6 @@
 # Holistyczny Dobór Kosmetyków: Twoja Droga do Świadomej Pielęgnacji
 
-Niniejsza aplikacja została stworzona w ramach realizacji projektu badawczo-rozwojowego, z funduszy pozyskanych dzięki **[Wstaw nazwę podmiotu finansującego, programu lub inicjatywy, np. wsparciu grantu naukowego]**. Jej głównym celem jest rewolucjonizacja procesu doboru preparatów pielęgnacyjnych, umożliwiając użytkownikowi świadomy i spersonalizowany wybór, który kompleksowo zadba o kondycję ciała, uwzględniając każdy, nawet najmniejszy aspekt.
+Niniejsza aplikacja została stworzona w ramach realizacji projektu badawczo-rozwojowego, z funduszy pozyskanych przez firmę Dary Natury sp. z o. o.dzięki **[nazwa podmiotu finansującego / programu**. Jej głównym celem jest rewolucjonizacja procesu doboru preparatów pielęgnacyjnych, umożliwiając użytkownikowi świadomy i spersonalizowany wybór, który kompleksowo zadba o kondycję ciała, uwzględniając każdy, nawet najmniejszy aspekt.
 
 ## Dlaczego Świadomy Wybór Ma Znaczenie?
 
