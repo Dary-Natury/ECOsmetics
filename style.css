@@ -1,0 +1,60 @@
+/*
+  This file contains custom styles that supplement the Tailwind CSS framework.
+  It's used for elements where more complex styling is needed, such as
+  the Chart.js container and the modal animations.
+*/
+
+:root {
+  /* Color Palette - Warm Neutrals */
+  --bg-main: #FDFBF7;
+  --bg-section: #F8F4EF;
+  --text-main: #3D3A37;
+  --text-secondary: #5C5855;
+  --primary-brand: #A0522D;
+  --primary-brand-hover: #8B4513;
+  --accent-brand: #6B5B4B;
+  --border-color: #EAE5DD;
+  --chart-color-1: #D2B48C;
+  --chart-color-2: #A0522D;
+  --chart-color-3: #EAE5DD;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  scroll-behavior: smooth;
+}
+
+/*
+  The chart container needs specific dimensions to ensure the
+  doughnut chart renders correctly and is responsive.
+*/
+.chart-container {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+  height: 300px; /* Default height for smaller screens */
+  max-height: 350px;
+}
+
+@media (min-width: 768px) {
+  .chart-container {
+    height: 350px; /* Larger height for tablets and desktops */
+  }
+}
+
+/*
+  Styles for the modal transition effects.
+  This provides a smooth fade-in and scale-up animation when the modal appears.
+*/
+.modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.5);
+  transition: opacity 0.3s ease-in-out;
+}
+
+.modal-content {
+  transition: transform 0.3s ease-in-out;
+}
