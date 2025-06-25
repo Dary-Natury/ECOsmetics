@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv() 
 
-DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://user:password@localhost:5432/holistic_db') # Domyślna wartość dla lokalnego testowania
+DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://user:password@localhost:5432/holistic_db')
 
 def create_tables(conn):
     """Tworzy tabele w bazie danych."""
@@ -41,7 +41,7 @@ def create_tables(conn):
 def insert_products(conn, products_data):
     """Wstawia dane produktów do tabeli."""
     sql = """INSERT INTO products(id, name, link, criteria, main_ingredients, ingredients)
-             VALUES(%s, %s, %s, %s, %s, %s) ON CONFLICT (id) DO NOTHING;""" # ON CONFLICT (id) DO NOTHING - ignoruje duplikaty ID
+             VALUES(%s, %s, %s, %s, %s, %s) ON CONFLICT (id) DO NOTHING;"""
     cur = conn.cursor()
     try:
         for product in products_data:
@@ -62,16 +62,14 @@ def insert_products(conn, products_data):
         cur.close()
 
 if __name__ == '__main__':
-    # Ścieżka do pliku JSON względem lokalizacji init_db.py
-    # Zakładamy, że init_db.py jest w backend/, a products.json w frontend/
-    json_file_path = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'products.json')
+    json_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'products.json')
 
     try:
         with open(json_file_path, 'r', encoding='utf-8') as f:
             products_list = json.load(f)
     except FileNotFoundError:
         print(f"BŁĄD: Plik {json_file_path} nie został znaleziony.")
-        print("Upewnij się, że przekonwertowałeś database.js do products.json i umieściłeś go w katalogu frontend.")
+        print("JSON nie odnaleziony.")
         exit()
     except json.JSONDecodeError as e:
         print(f"BŁĄD: Niepoprawny format JSON w pliku {json_file_path}: {e}")
@@ -83,7 +81,7 @@ if __name__ == '__main__':
 
     conn = None
     try:
-        print(f"Próba połączenia z bazą danych: {DATABASE_URL.split('@')[-1]}") # Nie pokazuj hasła
+        print(f"Próba połączenia z bazą danych: {DATABASE_URL.split('@')[-1]}")
         conn = psycopg2.connect(DATABASE_URL)
         print("Połączono z bazą danych.")
         create_tables(conn)
