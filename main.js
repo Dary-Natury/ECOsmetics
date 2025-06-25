@@ -1,35 +1,35 @@
 /**
  * @file Main application script for the Holistic Cosmetics Selector.
  * @description This script handles all page interactivity, including the dynamic wizard,
- * the AI creator simulation, and mobile navigation. It uses a pre-compiled database
- * from database.js.
+ * the AI creator simulation, and mobile navigation. It uses data fetched from a backend API.
  */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => { 
+    let productsDataFromAPI = []; 
 
-    if (typeof productsData === 'undefined' || !Array.isArray(productsData)) {
-        console.error("Baza danych (productsData w database.js) nie została załadowana lub ma nieprawidłowy format! Upewnij się, że plik database.js jest dołączony w index.html PRZED main.js i zawiera tablicę 'productsData'.");
+    try {
+        const response = await fetch('/api/products');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        productsDataFromAPI = await response.json();
+        if (!Array.isArray(productsDataFromAPI)) {
+            throw new Error("Dane z API nie są tablicą.");
+        }
+    } catch (error) {
+        console.error("Nie udało się załadować danych produktów z API:", error);
         const wizardContainer = document.getElementById('wizard-content-container');
         if (wizardContainer) {
-            wizardContainer.innerHTML = `<p class="text-center text-red-500">Błąd krytyczny: Brak lub nieprawidłowa baza danych.</p>`;
+            wizardContainer.innerHTML = `<p class="text-center text-red-500">Błąd krytyczny: Nie udało się załadować danych produktów z serwera.</p>`;
         }
-        return;
+        return; 
     }
 
     const AppState = {
-        products: productsData,
+        products: productsDataFromAPI,
         wizardStepsConfig: [], 
         currentWizardStepIndex: 0,
         userChoices: {}, 
-        currentFilteredProducts: [...productsData], 
-        aiCreatorRecipes: { 
-            krem_hialuronowa_witamina_c_retinol: "Wygenerowana Receptura (Krem):\n- Baza hialuronowa: 75%\n- Witamina C (stabilna forma): 10%\n- Retinol (0.5%): 5%\n- Skwalan (emolient): 5%\n- Gliceryna (humektant): 4%\n- Konserwant naturalny: 1%",
-            krem_hialuronowa_witamina_c: "Wygenerowana Receptura (Krem):\n- Baza hialuronowa: 80%\n- Witamina C (stabilna forma): 15%\n- Gliceryna (humektant): 4%\n- Konserwant naturalny: 1%",
-            krem_aloesowa_niacynamid: "Wygenerowana Receptura (Krem):\n- Baza aloesowa: 85%\n- Niacynamid: 5%\n- Pantenol (łagodzenie): 5%\n- Konserwant naturalny: 1%\n- Olejek lawendowy (zapach): 0.5%",
-            szampon_lipidowa_witamina_c_retinol: "Wygenerowana Receptura (Szampon):\n- Baza lipidowa (delikatne surfaktanty): 60%\n- Witamina C (dla skóry głowy): 2%\n- Retinol (stymulacja mieszków): 0.2%\n- Ekstrakt z pokrzywy: 5%\n- Pantenol: 3%\n- Woda destylowana: do 100%\n- Konserwant: 1%",
-            szampon_hialuronowa_niacynamid: "Wygenerowana Receptura (Szampon):\n- Baza hialuronowa (nawilżające surfaktanty): 50%\n- Niacynamid (dla skóry głowy): 3%\n- Keratyna hydrolizowana: 2%\n- Gliceryna: 5%\n- Woda destylowana: do 100%\n- Konserwant: 1%",
-            default_krem: "Wygenerowana Receptura (Krem):\n- Wybrana baza: 80%\n- Wybrane składniki aktywne: 15%\n- Humektanty i emolienty: 4%\n- Konserwant: 1%",
-            default_szampon: "Wygenerowana Receptura (Szampon):\n- Wybrana baza (surfaktanty): 60%\n- Wybrane składniki aktywne: 5%\n- Substancje kondycjonujące: 5%\n- Woda: do 100%\n- Konserwant: 1%"
-        }
+        currentFilteredProducts: [...productsDataFromAPI]
     };
 
     const DOMElements = {
@@ -53,25 +53,22 @@ document.addEventListener('DOMContentLoaded', () => {
         activeIngredientsCheckboxes: null
     };
 
-    // --- Logika Kreatora (Wizard) ---
-    function getUniqueOptionsFromCriteriaArray(products, key) {
-        const allOptions = products.flatMap(p => {
-            if (p && p.criteria && Array.isArray(p.criteria[key])) {
-                return p.criteria[key];
-            }
-            return [];
-        });
+    function getUniqueOptionsFromCriteriaArray(products, keyInCriteria) {
+        if (!products) return [];
+        const allOptions = products.flatMap(p => (p.criteria && Array.isArray(p.criteria[keyInCriteria]) ? p.criteria[keyInCriteria] : []));
         return Array.from(new Set(allOptions)).filter(Boolean).sort();
     }
     
-    function getUniqueOptionsFromArray(products, key) {
-        const allOptions = products.flatMap(p => {
-            if (p && Array.isArray(p[key])) {
-                return p[key];
-            }
-            return [];
-        });
+    function getUniqueOptionsFromArray(products, productKey) {
+        if (!products) return [];
+        const allOptions = products.flatMap(p => (Array.isArray(p[productKey]) ? p[productKey] : []));
         return Array.from(new Set(allOptions)).filter(Boolean).sort();
+    }
+
+    function getAllUniqueMainIngredients(allProducts) {
+        if (!allProducts || allProducts.length === 0) return [];
+        const allMainIngredients = allProducts.flatMap(p => (Array.isArray(p.main_ingredients) ? p.main_ingredients : []));
+        return Array.from(new Set(allMainIngredients)).filter(Boolean).sort();
     }
 
     function initWizardConfig() {
@@ -120,8 +117,8 @@ document.addEventListener('DOMContentLoaded', () => {
             {
                 id: 'mainIngredients',
                 question: "Wybierz główny składnik:",
-                getOptions: (filteredProducts) => getUniqueOptionsFromArray(filteredProducts, 'mainIngredients'),
-                filterLogic: (product, choice) => product.mainIngredients && product.mainIngredients.includes(choice),
+                getOptions: (filteredProducts) => getUniqueOptionsFromArray(filteredProducts, 'main_ingredients'), 
+                filterLogic: (product, choice) => product.main_ingredients && product.main_ingredients.includes(choice),
                 dependsOn: { stepId: 'chceSkladnik', value: 'Tak' } 
             }
         ];
@@ -238,8 +235,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function createProductCardHTML(product) {
         const linkButton = product.link ? `<a href="${product.link}" target="_blank" rel="noopener noreferrer" class="text-sm bg-[#6B5B4B] text-white py-1 px-3 rounded hover:bg-[#3D3A37] transition inline-block">Zobacz produkt</a>` : '';
-        const mainIngredientsHTML = product.mainIngredients && product.mainIngredients.length > 0 
-            ? `<p class="text-sm mt-2"><strong class="font-medium">Składniki aktywne:</strong> ${product.mainIngredients.join(', ')}</p>` 
+        const mainIngredientsHTML = product.main_ingredients && product.main_ingredients.length > 0 
+            ? `<p class="text-sm mt-2"><strong class="font-medium">Składniki aktywne:</strong> ${product.main_ingredients.join(', ')}</p>` 
             : '';
 
         return `
@@ -267,7 +264,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setupAiCreator() {
-        const activeIngredientsOptions = ["Witamina C", "Retinol", "Niacynamid"];
+        const activeIngredientsOptions = getAllUniqueMainIngredients(AppState.products); 
+
         const placeholderDiv = DOMElements.activeIngredientsPlaceholder; 
 
         if (!placeholderDiv) {
@@ -276,17 +274,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         const checkboxesContainer = document.createElement('div');
-        checkboxesContainer.className = "space-y-1";
+        checkboxesContainer.className = "space-y-1 max-h-48 overflow-y-auto border p-2 rounded-md"; 
         
-        activeIngredientsOptions.forEach(opt => {
-            const checkboxId = `ai-active-${opt.toLowerCase().replace(/\s+/g, '-')}`;
-            checkboxesContainer.innerHTML += `
-                <div class="flex items-center">
-                    <input type="checkbox" id="${checkboxId}" name="ai_active_ingredient" value="${opt}" class="h-4 w-4 text-[#A0522D] border-gray-300 rounded focus:ring-[#A0522D] mr-2">
-                    <label for="${checkboxId}" class="text-sm">${opt}</label>
-                </div>
-            `;
-        });
+        if (activeIngredientsOptions.length === 0) {
+            checkboxesContainer.innerHTML = `<p class="text-sm text-gray-500">Brak dostępnych składników aktywnych do wyboru.</p>`;
+        } else {
+            activeIngredientsOptions.forEach(opt => {
+                const checkboxId = `ai-active-${opt.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/gi, '')}`;
+                checkboxesContainer.innerHTML += `
+                    <div class="flex items-center">
+                        <input type="checkbox" id="${checkboxId}" name="ai_active_ingredient" value="${opt}" class="h-4 w-4 text-[#A0522D] border-gray-300 rounded focus:ring-[#A0522D] mr-2">
+                        <label for="${checkboxId}" class="text-sm">${opt}</label>
+                    </div>
+                `;
+            });
+        }
         
         placeholderDiv.innerHTML = ''; 
         placeholderDiv.appendChild(checkboxesContainer);
@@ -300,12 +302,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function generateAiFormula() {
+    async function generateAiFormula() {
         const base = DOMElements.baseSelect.value;
         const selectedActiveCheckboxes = DOMElements.activeIngredientsCheckboxes ? Array.from(DOMElements.activeIngredientsCheckboxes.querySelectorAll('input[name="ai_active_ingredient"]:checked')) : [];
         
-        if (selectedActiveCheckboxes.length > 2) {
-            alert("Możesz wybrać maksymalnie 2 składniki aktywne.");
+        if (selectedActiveCheckboxes.length > 3) { 
+            alert("Możesz wybrać maksymalnie 3 składniki aktywne.");
             return;
         }
         const activeIngredients = selectedActiveCheckboxes.map(cb => cb.value);
@@ -317,30 +319,52 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const productType = DOMElements.productTypeSelect.value;
 
-        DOMElements.formulaText.value = `GENEROWANIE RECEPTURY...\nTyp: ${productType}\nBaza: ${base}\nSkładniki Aktywne: ${activeIngredients.join(', ') || 'brak'}\nProporcje: SI analizuje...`;
+        const initialInfo = `GENEROWANIE RECEPTURY PRZEZ AI...\nTyp: ${productType}\nBaza: ${base}\nSkładniki Aktywne: ${activeIngredients.join(', ') || 'brak'}\n\nProszę czekać...\n`;
+        DOMElements.formulaText.value = initialInfo;
         DOMElements.formulaOutput.classList.remove('hidden');
 
-        setTimeout(() => {
-            let recipeKeyPartBase = base.toLowerCase().split(' ')[0].replace(/ą/g, 'a').replace(/ł/g, 'l'); 
-            let recipeKeyPartActives = activeIngredients.map(a => a.toLowerCase().replace(/\s+/g, '-').replace(/ę/g, 'e')).sort().join('_'); 
-            
-            let recipeKey = `${productType.toLowerCase()}_${recipeKeyPartBase}`;
-            if (recipeKeyPartActives) {
-                recipeKey += `_${recipeKeyPartActives}`;
-            }
-           
-            let recipe = AppState.aiCreatorRecipes[recipeKey];
+        try {
+            const response = await fetch('/api/ai/generate-formula', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    product_type: productType,
+                    base: base,
+                    actives: activeIngredients
+                }),
+            });
 
-            if (!recipe) { 
-                recipe = productType === 'Krem' ? AppState.aiCreatorRecipes.default_krem : AppState.aiCreatorRecipes.default_szampon;
-                recipe = recipe.replace('Wybrana baza', base);
-                recipe = recipe.replace('Wybrane składniki aktywne', activeIngredients.join(' + ') || 'podstawowe');
+            const responseText = await response.text();
+
+            if (!response.ok) {
+                let errorMsg = `Błąd serwera: ${response.status}`;
+                try {
+                    const errorData = JSON.parse(responseText);
+                    errorMsg = errorData.error || errorMsg;
+                } catch (e) {
+                    errorMsg = responseText || errorMsg;
+                }
+                throw new Error(errorMsg);
             }
             
-            DOMElements.formulaText.value = recipe;
-        }, 1500);
+            let formulaFromAI;
+            try {
+                const data = JSON.parse(responseText);
+                formulaFromAI = data.formula || "Nie otrzymano poprawnej receptury od AI.";
+            } catch (e) {
+                console.warn("Odpowiedź z backendu nie jest poprawnym JSON-em, wyświetlam jako tekst:", responseText);
+                formulaFromAI = responseText || "Otrzymano nieoczekiwaną odpowiedź od serwera.";
+            }
+            DOMElements.formulaText.value = `Typ: ${productType}\nBaza: ${base}\nSkładniki Aktywne: ${activeIngredients.join(', ') || 'brak'}\n\nOdpowiedź AI:\n${formulaFromAI}`;
+
+        } catch (error) {
+            console.error("Błąd podczas generowania receptury AI:", error);
+            DOMElements.formulaText.value = `${initialInfo}\nBŁĄD:\n${error.message}\nUpewnij się, że backend i Ollama działają poprawnie.`;
+        }
     }
-
+    
     function openModal(title, content) {
         DOMElements.modalTitle.innerText = title;
         DOMElements.modalBody.innerText = content; 
@@ -402,9 +426,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 resetWizard();
             } else if (actionButton) {
                 const { action, id } = actionButton.dataset;
-                const product = AppState.products.find(p => p.id == id);
+                const product = AppState.products.find(p => p.id == id); 
                 if (product && action === 'ingredients') {
-                    const formattedIngredients = product.ingredients ? product.ingredients.replace(/, /g, ',\n') : "Brak danych o składzie.";
+                    const ingredientsText = product.ingredients || "Brak danych o składzie."; 
+                    const formattedIngredients = ingredientsText.replace(/, /g, ',\n');
                     openModal(`Skład INCI: ${product.name}`, formattedIngredients);
                 }
             }
